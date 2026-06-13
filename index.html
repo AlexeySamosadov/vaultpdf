@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>VaultPDF — private PDF toolkit, 100% in your browser</title>
-<meta name="description" content="Merge, reorder, rotate, split, watermark and extract text from PDFs. Your files never leave your device — everything runs locally in the browser." />
+<meta name="description" content="Merge, split, rotate PDFs, convert JPG/PNG to PDF and PDF to images, watermark and extract text — 100% in your browser. Files never leave your device." />
 <link rel="canonical" href="https://alexeysamosadov.github.io/vaultpdf/" />
 <meta property="og:type" content="website" />
 <meta property="og:title" content="VaultPDF — the PDF toolkit that never sees your files" />
@@ -87,13 +87,13 @@
 <main>
   <section class="hero">
     <h1>The PDF toolkit that never sees your files</h1>
-    <p>Merge, reorder, rotate, split, watermark and extract text. Everything runs <span class="lock">entirely in your browser</span> — your documents are never uploaded, never stored, never seen by a server. Close the tab and they're gone.</p>
+    <p>Merge, split, rotate, convert images ↔ PDF, watermark and extract text. Everything runs <span class="lock">entirely in your browser</span> — your files are never uploaded, never stored, never seen by a server. Close the tab and they're gone.</p>
   </section>
 
   <div id="drop" class="drop">
-    <strong>Drop PDFs here</strong> or click to choose
-    <small>Add as many files as you want. They stay on your device.</small>
-    <input id="file" type="file" accept="application/pdf" multiple class="hidden" />
+    <strong>Drop PDFs or images here</strong> or click to choose
+    <small>PDFs and JPG/PNG images. As many as you want — they stay on your device.</small>
+    <input id="file" type="file" accept="application/pdf,image/png,image/jpeg" multiple class="hidden" />
   </div>
 
   <div id="toolbar" class="toolbar hidden">
@@ -102,20 +102,24 @@
     <button onclick="rotateSel()" id="bRot" disabled>⟳ Rotate</button>
     <button onclick="deleteSel()" id="bDel" disabled>🗑 Delete</button>
     <button onclick="extractText()" id="bTxt">⇩ Text (.txt)</button>
+    <button onclick="exportImages()" id="bImg">🖼 PNG (.zip)</button>
     <button class="pro" onclick="proAction('watermark')" id="bWm">🅦 Watermark<span class="tag">PRO</span></button>
     <button class="go" onclick="exportPDF()" id="bExp">⬇︎ Export PDF</button>
     <span class="count" id="count"></span>
   </div>
 
   <div id="grid" class="grid"></div>
-  <div id="empty" class="empty hidden">No pages yet — add a PDF to start.</div>
+  <div id="empty" class="empty hidden">No pages yet — add a PDF or image to start.</div>
 </main>
 
 <footer>
-  VaultPDF — private, offline PDF tools. No tracking, no uploads.<br><br>
-  <a href="./merge-pdf-without-uploading.html" style="color:#8b94ac">Merge PDF without uploading</a> &nbsp;·&nbsp;
-  <a href="./split-pdf-without-uploading.html" style="color:#8b94ac">Split PDF privately</a> &nbsp;·&nbsp;
-  <a href="./extract-text-from-pdf-locally.html" style="color:#8b94ac">Extract text locally</a>
+  VaultPDF — private, offline PDF &amp; image tools. No tracking, no uploads.<br><br>
+  <a href="./merge-pdf-without-uploading.html" style="color:#8b94ac">Merge PDF</a> &nbsp;·&nbsp;
+  <a href="./split-pdf-without-uploading.html" style="color:#8b94ac">Split PDF</a> &nbsp;·&nbsp;
+  <a href="./jpg-to-pdf-without-uploading.html" style="color:#8b94ac">JPG to PDF</a> &nbsp;·&nbsp;
+  <a href="./pdf-to-jpg-without-uploading.html" style="color:#8b94ac">PDF to JPG</a> &nbsp;·&nbsp;
+  <a href="./rotate-pdf-without-uploading.html" style="color:#8b94ac">Rotate PDF</a> &nbsp;·&nbsp;
+  <a href="./extract-text-from-pdf-locally.html" style="color:#8b94ac">Extract text</a>
 </footer>
 
 <div id="toast" class="toast"></div>
@@ -123,6 +127,7 @@
 <!-- libs -->
 <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script>
 /* ---------- config: embedded public key for offline license verification ---------- */
 const PUBLIC_JWK = {"kty":"EC","x":"mWXKb_4g4H-8Z3XIajIs-BrHPpQg9-vs_xRGrrsht7k","y":"paHDm7g3u2O4qleWvwkA80Q8zIppLU9pdAV4nbHUvHo","crv":"P-256"};
@@ -160,16 +165,23 @@ dz.ondrop = e=>{e.preventDefault();dz.classList.remove("hot");addFiles(e.dataTra
 $("#file").onchange = e=>addFiles(e.target.files);
 
 async function addFiles(list){
-  const files = Array.from(list).filter(f=>f.type==="application/pdf"||f.name.toLowerCase().endsWith(".pdf"));
-  if(!files.length){ toast("Only PDF files are supported"); return; }
+  const files = Array.from(list).filter(f=> f.type==="application/pdf" || /\.pdf$/i.test(f.name) || f.type.startsWith("image/") || /\.(png|jpe?g)$/i.test(f.name));
+  if(!files.length){ toast("Add PDF or JPG/PNG image files"); return; }
   for(const f of files){
     try{
       const buf = new Uint8Array(await f.arrayBuffer());
       const fileId = "f"+(uid++);
-      docs[fileId] = { name:f.name, bytes:buf };
-      const doc = await pdfjsLib.getDocument({ data:buf.slice() }).promise;
-      pdfjsDocs[fileId] = doc;
-      for(let i=0;i<doc.numPages;i++) pages.push({ id:"p"+(uid++), fileId, idx:i, rot:0 });
+      const isImage = f.type.startsWith("image/") || /\.(png|jpe?g)$/i.test(f.name);
+      if(isImage){
+        const type = /png/i.test(f.type) || /\.png$/i.test(f.name) ? "image/png" : "image/jpeg";
+        docs[fileId] = { name:f.name, bytes:buf, type, isImage:true };
+        pages.push({ id:"p"+(uid++), fileId, idx:0, rot:0, isImage:true });
+      } else {
+        docs[fileId] = { name:f.name, bytes:buf };
+        const doc = await pdfjsLib.getDocument({ data:buf.slice() }).promise;
+        pdfjsDocs[fileId] = doc;
+        for(let i=0;i<doc.numPages;i++) pages.push({ id:"p"+(uid++), fileId, idx:i, rot:0 });
+      }
     }catch(err){ console.error(err); toast("Could not read "+f.name); }
   }
   render();
@@ -201,6 +213,16 @@ function updateButtons(){
 }
 async function drawThumb(p, canvas){
   try{
+    if(p.isImage){
+      const blob=new Blob([docs[p.fileId].bytes],{type:docs[p.fileId].type});
+      const bmp=await createImageBitmap(blob);
+      const w=150, h=bmp.height*(150/bmp.width), rot=((p.rot%360)+360)%360;
+      const ctx=canvas.getContext("2d");
+      if(rot===90||rot===270){ canvas.width=h; canvas.height=w; } else { canvas.width=w; canvas.height=h; }
+      ctx.save(); ctx.translate(canvas.width/2,canvas.height/2); ctx.rotate(rot*Math.PI/180);
+      ctx.drawImage(bmp,-w/2,-h/2,w,h); ctx.restore();
+      return;
+    }
     const page = await pdfjsDocs[p.fileId].getPage(p.idx+1);
     const base = page.getViewport({scale:1});
     const scale = 150/base.width;
@@ -242,6 +264,14 @@ async function exportPDF(){
     const out = await PDFDocument.create();
     const srcCache = {};
     for(const p of subset){
+      if(p.isImage){
+        const d=docs[p.fileId];
+        const img = d.type==="image/png" ? await out.embedPng(d.bytes) : await out.embedJpg(d.bytes);
+        const pg = out.addPage([img.width, img.height]);
+        pg.drawImage(img,{x:0,y:0,width:img.width,height:img.height});
+        if(p.rot){ pg.setRotation(degrees(((p.rot%360)+360)%360)); }
+        continue;
+      }
       if(!srcCache[p.fileId]) srcCache[p.fileId] = await PDFDocument.load(docs[p.fileId].bytes, {ignoreEncryption:true});
       const [copied] = await out.copyPages(srcCache[p.fileId], [p.idx]);
       if(p.rot){ const cur=copied.getRotation().angle; copied.setRotation(degrees((cur+p.rot)%360)); }
@@ -263,7 +293,8 @@ async function extractText(){
   toast("Extracting text…");
   let out="";
   const ids = selectedIds();
-  const subset = ids.length ? pages.filter(p=>ids.includes(p.id)) : pages;
+  const subset = (ids.length ? pages.filter(p=>ids.includes(p.id)) : pages).filter(p=>!p.isImage);
+  if(!subset.length){ toast("No text-based PDF pages to extract"); return; }
   try{
     for(let i=0;i<subset.length;i++){
       const p=subset[i];
@@ -276,6 +307,32 @@ async function extractText(){
     download(new TextEncoder().encode(out), "vaultpdf-text.txt", "text/plain");
     toast("Text saved ✓");
   }catch(e){ console.error(e); toast("Extract failed"); }
+}
+async function exportImages(){
+  if(!pages.length) return;
+  const ids=selectedIds();
+  const subset = ids.length ? pages.filter(p=>ids.includes(p.id)) : pages;
+  toast(`Rendering ${subset.length} image(s)…`);
+  try{
+    const zip=new JSZip();
+    for(let i=0;i<subset.length;i++){
+      const p=subset[i]; let blob;
+      if(p.isImage){
+        blob=new Blob([docs[p.fileId].bytes],{type:docs[p.fileId].type});
+      } else {
+        const page=await pdfjsDocs[p.fileId].getPage(p.idx+1);
+        const vp=page.getViewport({scale:2, rotation:(page.rotate+p.rot)%360});
+        const c=document.createElement("canvas"); c.width=vp.width; c.height=vp.height;
+        await page.render({canvasContext:c.getContext("2d"), viewport:vp}).promise;
+        blob=await new Promise(res=>c.toBlob(res,"image/png"));
+      }
+      const ext=(blob.type==="image/jpeg")?"jpg":"png";
+      zip.file(`page-${String(i+1).padStart(3,"0")}.${ext}`, blob);
+    }
+    const outBlob=await zip.generateAsync({type:"blob"});
+    download(await outBlob.arrayBuffer(), "vaultpdf-images.zip", "application/zip");
+    toast("Images saved ✓");
+  }catch(e){ console.error(e); toast("Export failed: "+e.message); }
 }
 function download(bytes, name, type){
   const blob=new Blob([bytes],{type}); const url=URL.createObjectURL(blob);
