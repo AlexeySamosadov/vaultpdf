@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>VaultPDF — private PDF toolkit, 100% in your browser</title>
+<meta name="description" content="Merge, reorder, rotate, split, watermark and extract text from PDFs. Your files never leave your device — everything runs locally in the browser." />
+<style>
+  :root{
+    --bg:#0b0d12; --panel:#141823; --panel2:#1b2030; --line:#262d40;
+    --txt:#e8ecf5; --mut:#8b94ac; --acc:#5b8cff; --acc2:#3ad29f; --danger:#ff6b6b; --gold:#ffce5c;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--txt);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  a{color:var(--acc)}
+  header{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(11,13,18,.85);backdrop-filter:blur(8px);z-index:20}
+  .logo{font-weight:800;letter-spacing:-.5px;font-size:20px}
+  .logo b{color:var(--acc)}
+  .badge{font-size:11px;color:var(--acc2);border:1px solid var(--acc2);border-radius:99px;padding:2px 9px;font-weight:700}
+  .grow{flex:1}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--mut);border:1px solid var(--line);border-radius:99px;padding:5px 11px;cursor:pointer;background:var(--panel)}
+  .pill.pro{color:var(--gold);border-color:#5a4a1e}
+  main{max-width:1100px;margin:0 auto;padding:22px 20px 80px}
+  .hero{text-align:center;padding:30px 10px 6px}
+  .hero h1{font-size:30px;margin:.2em 0;letter-spacing:-.6px}
+  .hero p{color:var(--mut);max-width:620px;margin:8px auto;font-size:15px}
+  .lock{color:var(--acc2);font-weight:600}
+  .drop{margin:22px 0;border:2px dashed var(--line);border-radius:16px;padding:34px;text-align:center;cursor:pointer;transition:.15s;background:var(--panel)}
+  .drop:hover,.drop.hot{border-color:var(--acc);background:var(--panel2)}
+  .drop strong{color:var(--txt)}
+  .drop small{color:var(--mut);display:block;margin-top:6px}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 0;position:sticky;top:57px;background:rgba(11,13,18,.85);backdrop-filter:blur(8px);padding:10px 0;z-index:10}
+  button{font:inherit;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:9px 13px;cursor:pointer;display:inline-flex;gap:7px;align-items:center}
+  button:hover{border-color:var(--acc)}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  button.primary{background:linear-gradient(180deg,#5b8cff,#3f6fe0);border-color:#3f6fe0;font-weight:700}
+  button.go{background:linear-gradient(180deg,#3ad29f,#23a87c);border-color:#23a87c;color:#04130d;font-weight:700}
+  button.pro{position:relative}
+  button.pro .tag{font-size:9px;color:var(--gold);border:1px solid #5a4a1e;border-radius:99px;padding:1px 5px;margin-left:2px}
+  .count{color:var(--mut);font-size:13px;margin-left:auto}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:8px}
+  .page{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px;cursor:grab;user-select:none;transition:.1s}
+  .page.sel{border-color:var(--acc);box-shadow:0 0 0 2px rgba(91,140,255,.25)}
+  .page.dragover{border-color:var(--acc2)}
+  .page canvas{width:100%;height:auto;border-radius:6px;background:#fff;display:block}
+  .page .meta{display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-size:11px;color:var(--mut)}
+  .page .n{font-weight:700;color:var(--txt)}
+  .page .src{max-width:84px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .page .chk{position:absolute;top:11px;left:11px;width:18px;height:18px;border-radius:5px;border:1px solid var(--line);background:rgba(0,0,0,.4)}
+  .page.sel .chk{background:var(--acc);border-color:var(--acc)}
+  .page .rot{position:absolute;top:10px;right:10px;font-size:10px;background:rgba(0,0,0,.5);border-radius:6px;padding:1px 5px;color:var(--mut)}
+  .empty{color:var(--mut);text-align:center;padding:40px}
+  .hidden{display:none!important}
+  /* modal */
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:50}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px;max-width:440px;width:92%}
+  .modal h3{margin:0 0 4px}
+  .modal p{color:var(--mut);font-size:14px}
+  .modal input{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px;font:13px/1.4 ui-monospace,Menlo,monospace;margin:8px 0}
+  .row{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
+  .err{color:var(--danger);font-size:13px;min-height:18px}
+  .ok{color:var(--acc2);font-size:13px;min-height:18px}
+  .feats{text-align:left;font-size:13px;color:var(--mut);margin:10px 0;padding-left:18px}
+  .feats li{margin:3px 0}
+  footer{border-top:1px solid var(--line);color:var(--mut);font-size:12px;text-align:center;padding:18px}
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 16px;z-index:60;opacity:0;transition:.25s}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><b>Vault</b>PDF</div>
+  <span class="badge">100% local</span>
+  <div class="grow"></div>
+  <span id="proPill" class="pill" onclick="openLicense()">🔓 Unlock Pro</span>
+</header>
+
+<main>
+  <section class="hero">
+    <h1>The PDF toolkit that never sees your files</h1>
+    <p>Merge, reorder, rotate, split, watermark and extract text. Everything runs <span class="lock">entirely in your browser</span> — your documents are never uploaded, never stored, never seen by a server. Close the tab and they're gone.</p>
+  </section>
+
+  <div id="drop" class="drop">
+    <strong>Drop PDFs here</strong> or click to choose
+    <small>Add as many files as you want. They stay on your device.</small>
+    <input id="file" type="file" accept="application/pdf" multiple class="hidden" />
+  </div>
+
+  <div id="toolbar" class="toolbar hidden">
+    <button onclick="document.getElementById('file').click()">＋ Add</button>
+    <button onclick="selectAll()">☑︎ All</button>
+    <button onclick="rotateSel()" id="bRot" disabled>⟳ Rotate</button>
+    <button onclick="deleteSel()" id="bDel" disabled>🗑 Delete</button>
+    <button onclick="extractText()" id="bTxt">⇩ Text (.txt)</button>
+    <button class="pro" onclick="proAction('watermark')" id="bWm">🅦 Watermark<span class="tag">PRO</span></button>
+    <button class="go" onclick="exportPDF()" id="bExp">⬇︎ Export PDF</button>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div id="grid" class="grid"></div>
+  <div id="empty" class="empty hidden">No pages yet — add a PDF to start.</div>
+</main>
+
+<footer>
+  VaultPDF — private, offline PDF tools. No tracking, no uploads. &nbsp;·&nbsp; Built as a single static file.
+</footer>
+
+<div id="toast" class="toast"></div>
+
+<!-- libs -->
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script>
+/* ---------- config: embedded public key for offline license verification ---------- */
+const PUBLIC_JWK = {"kty":"EC","x":"mWXKb_4g4H-8Z3XIajIs-BrHPpQg9-vs_xRGrrsht7k","y":"paHDm7g3u2O4qleWvwkA80Q8zIppLU9pdAV4nbHUvHo","crv":"P-256"};
+const PAY = {
+  wallet:  "REPLACE_WITH_YOUR_CRYPTO_WALLET_ADDRESS",
+  chain:   "Base",
+  token:   "USDC",
+  price:   "19",
+  issuer:  "",   /* deployed license-issuer worker URL (POST {tx,email}->{license}); empty = manual delivery */
+  contact: "REPLACE_WITH_CONTACT_OR_GITHUB_ISSUES_URL"
+};
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
+const { PDFDocument, degrees, rgb, StandardFonts } = PDFLib;
+
+/* ---------- state ---------- */
+let docs = {};            // fileId -> { name, bytes:Uint8Array }
+let pdfjsDocs = {};       // fileId -> pdfjs document (for thumbs + text)
+let pages = [];           // { id, fileId, idx, rot }
+let pro = false;
+let uid = 0;
+
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),2200); }
+function selCount(){ return grid().filter(p=>p.sel).length; }
+function grid(){ return Array.from(document.querySelectorAll(".page")).map(el=>({el,id:el.dataset.id,sel:el.classList.contains("sel")})); }
+
+/* ---------- file intake ---------- */
+const dz = $("#drop");
+dz.onclick = ()=>$("#file").click();
+dz.ondragover = e=>{e.preventDefault();dz.classList.add("hot")};
+dz.ondragleave = ()=>dz.classList.remove("hot");
+dz.ondrop = e=>{e.preventDefault();dz.classList.remove("hot");addFiles(e.dataTransfer.files)};
+$("#file").onchange = e=>addFiles(e.target.files);
+
+async function addFiles(list){
+  const files = Array.from(list).filter(f=>f.type==="application/pdf"||f.name.toLowerCase().endsWith(".pdf"));
+  if(!files.length){ toast("Only PDF files are supported"); return; }
+  for(const f of files){
+    try{
+      const buf = new Uint8Array(await f.arrayBuffer());
+      const fileId = "f"+(uid++);
+      docs[fileId] = { name:f.name, bytes:buf };
+      const doc = await pdfjsLib.getDocument({ data:buf.slice() }).promise;
+      pdfjsDocs[fileId] = doc;
+      for(let i=0;i<doc.numPages;i++) pages.push({ id:"p"+(uid++), fileId, idx:i, rot:0 });
+    }catch(err){ console.error(err); toast("Could not read "+f.name); }
+  }
+  render();
+}
+
+/* ---------- render ---------- */
+function render(){
+  const g = $("#grid"); g.innerHTML="";
+  $("#toolbar").classList.toggle("hidden", pages.length===0);
+  $("#empty").classList.toggle("hidden", pages.length!==0);
+  $("#drop").classList.toggle("hidden", pages.length!==0);
+  pages.forEach((p,pos)=>{
+    const el = document.createElement("div");
+    el.className="page"; el.dataset.id=p.id; el.draggable=true;
+    el.innerHTML = `<div class="chk"></div><div class="rot">${p.rot}°</div>
+      <canvas></canvas>
+      <div class="meta"><span class="n">#${pos+1}</span><span class="src" title="${docs[p.fileId].name}">${docs[p.fileId].name}</span></div>`;
+    el.onclick = ()=>{ el.classList.toggle("sel"); updateButtons(); };
+    addDrag(el);
+    g.appendChild(el);
+    drawThumb(p, el.querySelector("canvas"));
+  });
+  updateButtons();
+}
+function updateButtons(){
+  const n = document.querySelectorAll(".page.sel").length;
+  $("#bRot").disabled = n===0; $("#bDel").disabled = n===0;
+  $("#count").textContent = `${pages.length} page${pages.length!==1?"s":""}${n?` · ${n} selected`:""}`;
+}
+async function drawThumb(p, canvas){
+  try{
+    const page = await pdfjsDocs[p.fileId].getPage(p.idx+1);
+    const base = page.getViewport({scale:1});
+    const scale = 150/base.width;
+    const vp = page.getViewport({scale, rotation:(page.rotate + p.rot)%360});
+    canvas.width=vp.width; canvas.height=vp.height;
+    await page.render({canvasContext:canvas.getContext("2d"), viewport:vp}).promise;
+  }catch(e){ console.error(e); }
+}
+
+/* ---------- drag reorder ---------- */
+let dragId=null;
+function addDrag(el){
+  el.ondragstart=e=>{dragId=el.dataset.id; el.style.opacity=".4"};
+  el.ondragend=()=>{el.style.opacity="1"; document.querySelectorAll(".page").forEach(x=>x.classList.remove("dragover"))};
+  el.ondragover=e=>{e.preventDefault(); el.classList.add("dragover")};
+  el.ondragleave=()=>el.classList.remove("dragover");
+  el.ondrop=e=>{
+    e.preventDefault(); el.classList.remove("dragover");
+    const from=pages.findIndex(p=>p.id===dragId), to=pages.findIndex(p=>p.id===el.dataset.id);
+    if(from<0||to<0||from===to) return;
+    const [m]=pages.splice(from,1); pages.splice(to,0,m); render();
+  };
+}
+
+/* ---------- ops ---------- */
+function selectAll(){ const all=document.querySelectorAll(".page"); const every=document.querySelectorAll(".page.sel").length===all.length; all.forEach(e=>e.classList.toggle("sel",!every)); updateButtons(); }
+function selectedIds(){ return Array.from(document.querySelectorAll(".page.sel")).map(e=>e.dataset.id); }
+function rotateSel(){ const ids=selectedIds(); pages.forEach(p=>{if(ids.includes(p.id))p.rot=(p.rot+90)%360}); render(); reselect(ids); }
+function deleteSel(){ const ids=selectedIds(); pages=pages.filter(p=>!ids.includes(p.id)); render(); }
+function reselect(ids){ document.querySelectorAll(".page").forEach(e=>{ if(ids.includes(e.dataset.id)) e.classList.add("sel"); }); updateButtons(); }
+
+/* ---------- export ---------- */
+async function exportPDF(){
+  if(!pages.length) return;
+  const ids = selectedIds();
+  const subset = ids.length ? pages.filter(p=>ids.includes(p.id)) : pages;
+  toast(`Building PDF (${subset.length} pages)…`);
+  try{
+    const out = await PDFDocument.create();
+    const srcCache = {};
+    for(const p of subset){
+      if(!srcCache[p.fileId]) srcCache[p.fileId] = await PDFDocument.load(docs[p.fileId].bytes, {ignoreEncryption:true});
+      const [copied] = await out.copyPages(srcCache[p.fileId], [p.idx]);
+      if(p.rot){ const cur=copied.getRotation().angle; copied.setRotation(degrees((cur+p.rot)%360)); }
+      out.addPage(copied);
+    }
+    if(pro && window._wmText){
+      const font = await out.embedFont(StandardFonts.HelveticaBold);
+      for(const page of out.getPages()){
+        const {width,height}=page.getSize();
+        page.drawText(window._wmText,{x:width*0.12,y:height*0.45,size:Math.max(28,width/14),font,color:rgb(0.5,0.5,0.5),rotate:degrees(35),opacity:0.22});
+      }
+    }
+    const bytes = await out.save();
+    download(bytes, (ids.length?"vaultpdf-selection":"vaultpdf-merged")+".pdf", "application/pdf");
+    toast("Done — saved locally ✓");
+  }catch(e){ console.error(e); toast("Export failed: "+e.message); }
+}
+async function extractText(){
+  toast("Extracting text…");
+  let out="";
+  const ids = selectedIds();
+  const subset = ids.length ? pages.filter(p=>ids.includes(p.id)) : pages;
+  try{
+    for(let i=0;i<subset.length;i++){
+      const p=subset[i];
+      const page=await pdfjsDocs[p.fileId].getPage(p.idx+1);
+      const tc=await page.getTextContent();
+      out += `\n----- page ${i+1} (${docs[p.fileId].name}) -----\n`;
+      out += tc.items.map(it=>it.str).join(" ");
+      out += "\n";
+    }
+    download(new TextEncoder().encode(out), "vaultpdf-text.txt", "text/plain");
+    toast("Text saved ✓");
+  }catch(e){ console.error(e); toast("Extract failed"); }
+}
+function download(bytes, name, type){
+  const blob=new Blob([bytes],{type}); const url=URL.createObjectURL(blob);
+  const a=document.createElement("a"); a.href=url; a.download=name; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),4000);
+}
+
+/* ---------- pro features ---------- */
+function proAction(kind){
+  if(!pro){ openLicense(); return; }
+  if(kind==="watermark"){
+    const t=prompt("Watermark text (applied to every exported page):", window._wmText||"CONFIDENTIAL");
+    if(t!==null){ window._wmText=t.trim()||null; toast(window._wmText?`Watermark set: "${window._wmText}" — now Export`:"Watermark cleared"); }
+  }
+}
+
+/* ---------- licensing (offline ECDSA P-256 verify) ---------- */
+function b64urlToBytes(s){ s=s.replace(/-/g,"+").replace(/_/g,"/"); while(s.length%4)s+="="; const b=atob(s); const a=new Uint8Array(b.length); for(let i=0;i<b.length;i++)a[i]=b.charCodeAt(i); return a; }
+async function verifyLicense(str){
+  try{
+    const [pB,sB]=str.trim().split("."); if(!pB||!sB) return null;
+    const payloadBytes=b64urlToBytes(pB), sigBytes=b64urlToBytes(sB);
+    const key=await crypto.subtle.importKey("jwk",PUBLIC_JWK,{name:"ECDSA",namedCurve:"P-256"},false,["verify"]);
+    const ok=await crypto.subtle.verify({name:"ECDSA",hash:"SHA-256"},key,sigBytes,payloadBytes);
+    if(!ok) return null;
+    const payload=JSON.parse(new TextDecoder().decode(payloadBytes));
+    if(payload.exp && Math.floor(Date.now()/1000)>payload.exp) return {expired:true};
+    return payload;
+  }catch(e){ return null; }
+}
+async function applyLicense(str, silent){
+  const p=await verifyLicense(str);
+  const err=$("#licErr"), ok=$("#licOk");
+  if(err)err.textContent=""; if(ok)ok.textContent="";
+  if(p && !p.expired && p.plan==="pro"){
+    pro=true; localStorage.setItem("vaultpdf_license",str);
+    $("#proPill").textContent="✓ Pro"; $("#proPill").classList.add("pro");
+    if(!silent){ if(ok)ok.textContent="Unlocked. Thank you ♥"; setTimeout(closeLicense,900); }
+    return true;
+  }
+  if(!silent && err) err.textContent = p && p.expired ? "This license has expired." : "Invalid license key.";
+  return false;
+}
+function copyAddr(){ navigator.clipboard.writeText(PAY.wallet).then(()=>toast("Wallet address copied")); }
+async function payAndIssue(){
+  const err=$("#licErr"), ok=$("#licOk"); err.textContent=""; ok.textContent="";
+  const tx=($("#txh").value||"").trim(), email=($("#buyerEmail").value||"").trim();
+  if(!PAY.issuer){ err.innerHTML='After paying, send your tx hash via the <a href="'+PAY.contact+'" target="_blank">contact link</a> to receive your key.'; return; }
+  if(!/^0x[0-9a-fA-F]{64}$/.test(tx)){ err.textContent="Paste your payment transaction hash (0x…)."; return; }
+  if(!/.+@.+\..+/.test(email)){ err.textContent="Enter the email to license to."; return; }
+  ok.textContent="Verifying payment on-chain…";
+  try{
+    const r=await fetch(PAY.issuer,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({tx,email})});
+    const j=await r.json();
+    if(!r.ok){ ok.textContent=""; err.textContent=j.error||"Verification failed."; return; }
+    $("#licKey").value=j.license; await applyLicense(j.license,false);
+  }catch(e){ ok.textContent=""; err.textContent="Network error — try again in a moment."; }
+}
+function openLicense(){
+  if(pro){ toast("Pro is already active ✓"); return; }
+  const bg=document.createElement("div"); bg.className="modal-bg"; bg.id="licBg";
+  bg.innerHTML=`<div class="modal">
+    <h3>Unlock VaultPDF Pro — ${PAY.price} ${PAY.token}</h3>
+    <p>One-time. Lifetime. Pay with crypto. Works offline forever.</p>
+    <ul class="feats">
+      <li>🅦 Watermark every page on export</li>
+      <li>⇩ Batch export &amp; selection tools</li>
+      <li>♾ No limits, no subscription</li>
+      <li>🔒 Still 100% local — nothing uploaded</li>
+    </ul>
+    <p style="margin:8px 0 4px"><b>1.</b> Send <b>${PAY.price} ${PAY.token}</b> on <b>${PAY.chain}</b> to:</p>
+    <input readonly value="${PAY.wallet}" onclick="this.select()" />
+    <button onclick="copyAddr()">⧉ Copy address</button>
+    <p style="margin:12px 0 4px"><b>2.</b> Paste your payment tx hash + email:</p>
+    <input id="txh" placeholder="0x… transaction hash" />
+    <input id="buyerEmail" placeholder="email to license to" />
+    <div class="err" id="licErr"></div><div class="ok" id="licOk"></div>
+    <div class="row">
+      <button class="go" onclick="payAndIssue()">Verify &amp; unlock</button>
+      <button onclick="closeLicense()">Close</button>
+    </div>
+    <details style="margin-top:12px"><summary style="color:var(--mut);cursor:pointer;font-size:13px">Already have a license key?</summary>
+      <input id="licKey" placeholder="paste your license key" />
+      <button class="primary" onclick="applyLicense(document.getElementById('licKey').value,false)">Activate</button>
+    </details>
+  </div>`;
+  bg.onclick=e=>{ if(e.target===bg) closeLicense(); };
+  document.body.appendChild(bg);
+}
+function closeLicense(){ const b=$("#licBg"); if(b)b.remove(); }
+
+/* restore saved license */
+(async()=>{ const saved=localStorage.getItem("vaultpdf_license"); if(saved) await applyLicense(saved,true); })();
+</script>
+</body>
+</html>

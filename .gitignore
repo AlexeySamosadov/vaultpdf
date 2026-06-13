@@ -1,0 +1,5 @@
+# NEVER publish the signing key — anyone with it can mint unlimited Pro licenses.
+license_private_key.json
+worker/.dev.vars
+.DS_Store
+node_modules/

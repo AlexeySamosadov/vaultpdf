@@ -1,0 +1,22 @@
+name = "vaultpdf-license-issuer"
+main = "license-issuer.js"
+compatibility_date = "2026-01-01"
+
+# Create with: wrangler kv namespace create REDEEMED  -> paste the id here
+[[kv_namespaces]]
+binding = "REDEEMED"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+# Secret (do NOT put in this file):  wrangler secret put PRIVATE_JWK
+#   -> paste the full contents of ../license_private_key.json
+
+[vars]
+# === EDIT THESE ===
+WALLET = "REPLACE_WITH_YOUR_CRYPTO_WALLET_ADDRESS"
+TOKEN = "usdc"                 # "usdc" (stable price) or "native"
+PRICE_USDC = "19"              # price in whole USDC
+CHAIN_RPC = "https://mainnet.base.org"                          # Base mainnet (cheap gas)
+USDC_ADDR = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"        # USDC on Base — VERIFY for your chain
+USDC_DECIMALS = "6"
+# For native-coin payment instead, set TOKEN="native" and PRICE_NATIVE="0.006"
+# PRICE_NATIVE = "0.006"
