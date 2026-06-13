@@ -116,12 +116,12 @@
 /* ---------- config: embedded public key for offline license verification ---------- */
 const PUBLIC_JWK = {"kty":"EC","x":"mWXKb_4g4H-8Z3XIajIs-BrHPpQg9-vs_xRGrrsht7k","y":"paHDm7g3u2O4qleWvwkA80Q8zIppLU9pdAV4nbHUvHo","crv":"P-256"};
 const PAY = {
-  wallet:  "REPLACE_WITH_YOUR_CRYPTO_WALLET_ADDRESS",
+  wallet:  "0xe339997037C7e1C81829fA3e110d3e82B4bDd48E",
   chain:   "Base",
   token:   "USDC",
   price:   "19",
   issuer:  "",   /* deployed license-issuer worker URL (POST {tx,email}->{license}); empty = manual delivery */
-  contact: "REPLACE_WITH_CONTACT_OR_GITHUB_ISSUES_URL"
+  contact: "https://github.com/AlexeySamosadov/vaultpdf/issues/new"
 };
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";

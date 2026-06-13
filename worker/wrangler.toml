@@ -12,7 +12,7 @@ id = "REPLACE_WITH_KV_NAMESPACE_ID"
 
 [vars]
 # === EDIT THESE ===
-WALLET = "REPLACE_WITH_YOUR_CRYPTO_WALLET_ADDRESS"
+WALLET = "0xe339997037C7e1C81829fA3e110d3e82B4bDd48E"
 TOKEN = "usdc"                 # "usdc" (stable price) or "native"
 PRICE_USDC = "19"              # price in whole USDC
 CHAIN_RPC = "https://mainnet.base.org"                          # Base mainnet (cheap gas)
