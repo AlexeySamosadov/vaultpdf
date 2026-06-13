@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>VaultPDF — private PDF toolkit, 100% in your browser</title>
 <meta name="description" content="Merge, reorder, rotate, split, watermark and extract text from PDFs. Your files never leave your device — everything runs locally in the browser." />
+<link rel="canonical" href="https://alexeysamosadov.github.io/vaultpdf/" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="VaultPDF — the PDF toolkit that never sees your files" />
+<meta property="og:description" content="Merge, split, rotate, watermark and extract text from PDFs — 100% in your browser. Nothing is ever uploaded." />
+<meta property="og:url" content="https://alexeysamosadov.github.io/vaultpdf/" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="VaultPDF — private, in-browser PDF toolkit" />
+<meta name="twitter:description" content="Edit PDFs without ever uploading them. Free, no account, runs offline." />
 <style>
   :root{
     --bg:#0b0d12; --panel:#141823; --panel2:#1b2030; --line:#262d40;
@@ -104,7 +112,10 @@
 </main>
 
 <footer>
-  VaultPDF — private, offline PDF tools. No tracking, no uploads. &nbsp;·&nbsp; Built as a single static file.
+  VaultPDF — private, offline PDF tools. No tracking, no uploads.<br><br>
+  <a href="./merge-pdf-without-uploading.html" style="color:#8b94ac">Merge PDF without uploading</a> &nbsp;·&nbsp;
+  <a href="./split-pdf-without-uploading.html" style="color:#8b94ac">Split PDF privately</a> &nbsp;·&nbsp;
+  <a href="./extract-text-from-pdf-locally.html" style="color:#8b94ac">Extract text locally</a>
 </footer>
 
 <div id="toast" class="toast"></div>
@@ -312,7 +323,14 @@ function copyAddr(){ navigator.clipboard.writeText(PAY.wallet).then(()=>toast("W
 async function payAndIssue(){
   const err=$("#licErr"), ok=$("#licOk"); err.textContent=""; ok.textContent="";
   const tx=($("#txh").value||"").trim(), email=($("#buyerEmail").value||"").trim();
-  if(!PAY.issuer){ err.innerHTML='After paying, send your tx hash via the <a href="'+PAY.contact+'" target="_blank">contact link</a> to receive your key.'; return; }
+  if(!PAY.issuer){
+    const url = PAY.contact + (PAY.contact.includes("?")?"&":"?")
+      + "title=" + encodeURIComponent("VaultPDF Pro license request")
+      + "&body=" + encodeURIComponent("Payment tx hash: " + (tx||"0x...") + "\nEmail: " + (email||""));
+    window.open(url, "_blank");
+    ok.textContent = "Opened the request page — submit it and your license key is posted there automatically within ~1 min.";
+    return;
+  }
   if(!/^0x[0-9a-fA-F]{64}$/.test(tx)){ err.textContent="Paste your payment transaction hash (0x…)."; return; }
   if(!/.+@.+\..+/.test(email)){ err.textContent="Enter the email to license to."; return; }
   ok.textContent="Verifying payment on-chain…";
